@@ -12,11 +12,15 @@ module Termular
       attr_accessor :left, :right
     end
     
-    class Add < Binary;       def eval(ctx) left.eval(ctx) + right.eval(ctx) end end
-    class Subtract < Binary;  def eval(ctx) left.eval(ctx) - right.eval(ctx) end end
-    class Multiply < Binary;  def eval(ctx) left.eval(ctx) * right.eval(ctx) end end
-    class Divide < Binary;    def eval(ctx) left.eval(ctx) / right.eval(ctx) end end
-    class Power < Binary;     def eval(ctx) left.eval(ctx) ** right.eval(ctx) end end
+    class Add < Binary;               def eval(ctx) left.eval(ctx) +  right.eval(ctx) end end
+    class Subtract < Binary;          def eval(ctx) left.eval(ctx) -  right.eval(ctx) end end
+    class Multiply < Binary;          def eval(ctx) left.eval(ctx) *  right.eval(ctx) end end
+    class Divide < Binary;            def eval(ctx) left.eval(ctx) /  right.eval(ctx) end end
+    class Power < Binary;             def eval(ctx) left.eval(ctx) ** right.eval(ctx) end end
+    class LessThan < Binary;          def eval(ctx) left.eval(ctx) <  right.eval(ctx) end end
+    class LessThanEqual < Binary;     def eval(ctx) left.eval(ctx) <= right.eval(ctx) end end
+    class GreaterThan < Binary;       def eval(ctx) left.eval(ctx) >  right.eval(ctx) end end
+    class GreaterThanEqual < Binary;  def eval(ctx) left.eval(ctx) >= right.eval(ctx) end end
     
     class Negate < Base
       attr_accessor :expression
@@ -51,8 +55,16 @@ module Termular
       attr_accessor :expression
     end
     
+    class ImplicitCartesianCommand < Base
+      attr_accessor :relation
+    end
+    
     class PolarCommand < Base
       attr_accessor :expression
+    end
+    
+    class ImplicitPolarCommand < Base
+      attr_accessor :relation
     end
     
     class OptionCommand < Base
@@ -78,7 +90,11 @@ module Termular
         [ :OPEN_BRACKET,  /\[/ ],
         [ :CLOSE_BRACKET, /\]/ ],
         [ :COMMA,         /\,/ ],
-        [ :COMMAND,       /:([a-z][a-z0-9]*)/, ->m { m[1] } ]
+        [ :COMMAND,       /:([a-z][a-z0-9]*)/, ->m { m[1] } ],
+        [ :LTE,           /<=/ ],
+        [ :LT,            /</ ],
+        [ :GTE,           />=/ ],
+        [ :GT,            />/ ]
       ].map { |a| [a[0], Regexp.new("\\A#{a[1].source}", Regexp::MULTILINE), a[2]] }
       
     def self.lex!(original_src)
@@ -139,18 +155,29 @@ module Termular
       assert_type next_token, :COMMAND
       case token[1]
       when "q";   AST::QuitCommand.new
+      when "ic";  AST::ImplicitCartesianCommand.new relation: relation
       when "c";   AST::CartesianCommand.new expression: expression
+      when "ip";  AST::ImplicitPolarCommand.new relation: relation
       when "p";   AST::PolarCommand.new expression: expression
       when "opt"; option_command
       end
     end
     
+    def relation
+      left = expression
+      assert_type next_token, :LT, :LTE, :GT, :GTE
+      op = token[0]
+      right = expression
+      { LT: AST::LessThan, LTE: AST::LessThanEqual, GT: AST::GreaterThan,
+        GTE: AST::GreaterThanEqual }[op].new left: left, right: right
+    end
+
     def option_command
       assert_type next_token, :BAREWORD
       opt = token[1]
       AST::OptionCommand.new option: opt, expression: expression
     end
-    
+  
     def expression
       additive_expression
     end

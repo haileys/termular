@@ -126,6 +126,26 @@ module Termular
       end
     end
   
+    class ImplicitCartesian < Graph
+      def render
+        @needs_redraw = false
+        Console.buffered_print do |buff|
+          buff << render_axes
+          ctx = Context.new Context.global
+          ctx["time"] = Time.now.to_f - @start_time
+          buff << Console.color(:green)
+          1.upto(Console.rows - 1) do |sy|
+            1.upto(Console.cols) do |sx|
+              ctx["x"], ctx["y"] = screen_to_point sx, sy
+              if expression.eval ctx
+                buff << Console.move(sx, Console.rows - sy) << "+"
+              end
+            end
+          end
+        end
+      end
+    end
+    
     class Polar < Graph
       def render
         @needs_redraw = false
@@ -147,6 +167,27 @@ module Termular
             end
           end
           buff << Console.reset
+        end
+      end
+    end
+    
+    class ImplicitPolar < Graph
+      def render
+        @needs_redraw = false
+        Console.buffered_print do |buff|
+          buff << render_axes
+          ctx = Context.new Context.global
+          ctx["time"] = Time.now.to_f - @start_time
+          buff << Console.color(:green)
+          1.upto(Console.rows - 1) do |sy|
+            1.upto(Console.cols) do |sx|
+              x, y = screen_to_point sx, sy
+              ctx["r"], ctx["t"] = Math.sqrt(x**2 + y**2), Math.atan2(y, x)
+              if expression.eval ctx
+                buff << Console.move(sx, Console.rows - sy) << "+"
+              end
+            end
+          end
         end
       end
     end

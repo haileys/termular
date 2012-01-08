@@ -84,8 +84,14 @@ module Termular
           if current_command.is_a? AST::CartesianCommand
             @current_graph = Graph::Cartesian.new current_command.expression
             @needs_tick = expression =~ /time/
+          elsif current_command.is_a? AST::ImplicitCartesianCommand
+            @current_graph = Graph::ImplicitCartesian.new current_command.relation
+            @needs_tick = expression =~ /time/
           elsif current_command.is_a? AST::PolarCommand
             @current_graph = Graph::Polar.new current_command.expression
+            @needs_tick = expression =~ /time/
+          elsif current_command.is_a? AST::ImplicitPolarCommand
+            @current_graph = Graph::ImplicitPolar.new current_command.relation
             @needs_tick = expression =~ /time/
           elsif current_command.is_a? AST::OptionCommand
             if current_graph
